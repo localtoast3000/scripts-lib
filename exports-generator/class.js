@@ -5,8 +5,10 @@ const fs = require('fs');
  * A class that generates an index file with export statements based on default exports found in a directory and its subdirectories.
  */
 module.exports = class ExportsGenerator {
-  constructor(dirPath) {
+  constructor(dirPath, outputDirName = 'exports', outputFileName = 'module.exports') {
     this.PATH = path.join(process.cwd(), dirPath);
+    this.outputDirName = outputDirName;
+    this.outputFileName = outputFileName;
     this.jsFiles = [];
     this.tsFiles = [];
   }
@@ -83,11 +85,18 @@ module.exports = class ExportsGenerator {
       const files = fs.readdirSync(directoryPath);
       const exportStatements = [];
 
+      console.log(new RegExp(`^index\\.(js|jsx)$`));
+
       let currentJsFiles = files.filter(
-        (file) => /\.(js|jsx)$/.test(file) && !/^index\.(js|jsx)$/.test(file)
+        (file) =>
+          /\.(js|jsx)$/.test(file) &&
+          !new RegExp(`^${this.outputFileName}\\.(js|jsx)$`).test(file)
       );
+
       let currentTsFiles = files.filter(
-        (file) => /\.(ts|tsx)$/.test(file) && !/^index\.(ts|tsx)$/.test(file)
+        (file) =>
+          /\.(ts|tsx)$/.test(file) &&
+          !new RegExp(`^${this.outputFileName}\\.(js|jsx)$`).test(file)
       );
 
       const subdirectories = files.filter((file) => {
@@ -163,21 +172,29 @@ module.exports = class ExportsGenerator {
   generate() {
     try {
       const exportStatements = this.processDirectory(this.PATH);
+      const exportsDir = path.join(this.PATH, this.outputDirName);
 
       if (exportStatements.length > 0) {
         let indexFileName = false;
         if (this.tsFiles.length > 0 && this.jsFiles.length === 0) {
-          indexFileName = 'index.ts';
+          indexFileName = `${this.outputFileName}.ts`;
         } else if (this.jsFiles.length > 0 && this.tsFiles.length === 0) {
-          indexFileName = 'index.js';
+          indexFileName = `${this.outputFileName}.js`;
         } else {
           console.error(
             'Conflict between TypeScript and JavaScript files please resolve before exports can be created'
           );
           return;
         }
-        const indexFilePath = path.join(this.PATH, indexFileName);
+        if (!fs.existsSync(exportsDir)) {
+          fs.mkdirSync(exportsDir);
+        }
+        const indexFilePath = path.join(this.PATH, this.outputDirName, indexFileName);
         fs.writeFileSync(indexFilePath, exportStatements.join('\n'));
+        fs.writeFileSync(
+          path.join(this.PATH, 'package.json'),
+          `{"main": "${this.outputDirName}/${indexFileName}"}`
+        );
         console.log(
           `Index file '${indexFileName}' with exports generated successfully in the directory '${this.PATH}'.`
         );

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const ExportsGenerator = require('./class');
 
 // Get the paths from the command line arguments (start from index 2 to skip 'node' and 'index.js')
