@@ -2,10 +2,71 @@ const path = require('path');
 const fs = require('fs');
 
 /**
- * A class that generates an index file with export statements based on default exports found in a directory and its subdirectories.
+ * @class ExportsGenerator
+ *
+ * Searches for all ES6 export default modules within the given directory
+ * and generates an exports directory with an index file containing
+ * all export statements of the default exports at the same directory.
+ * Support for JavaScript and TypeScript.
+ *-  <-------------------------------------------------------->
+ *-   Example 1:
+ *-  <-------------------------------------------------------->
+ *-  Result at given directory path /directory
+ *-    -- + /directory-1
+ *-    ------ module-1.ts
+ *-    ------ module-2.ts
+ *-    ------ module-3.ts
+ *-    ------  + /exports
+ *-    ----------- index.ts
+ *-  Content in index.ts:
+ *-  -------- export { default as Module1 } from '../module-1'
+ *-  -------- export { default as Module2 } from '../module-2'
+ *-  -------- export { default as Module3 } from '../module-3'
+ *-  <-------------------------------------------------------->
+ *-  Example 2:
+ *-  <-------------------------------------------------------->
+ *-  Result at given directory path /directory
+ *-    -- + /directory-2
+ *-    ------ + /module-1
+ *-    ---------- index.jsx
+ *-    ------ + /module-2
+ *-    ---------- index.jsx
+ *-    ------ + /module-3
+ *-    ---------- index.jsx
+ *-    ------  + /exports
+ *-    ----------- index.js
+ *-  Content in index.ts:
+ *-  -------- export { default as Module1 } from '../module-1'
+ *-  -------- export { default as Module2 } from '../module-2'
+ *-  -------- export { default as Module3 } from '../module-3'
+ *-  <--------------------------------------------------------->
+ *-  It will only generate an exports file on either root level export default modules or one level down
+ *-  sub-directorys containing an export default module named index.
+ *-  <--------------------------------------------------------->
+ *- Valide file types are:
+ *- ------------ .js
+ *- ------------ .jsx
+ *- ------------ .ts
+ *- ------------ .tsx
+ *- <---------------------------------------------------------->
+ *- An exports file will only be generated if all valid file types are of one type, so if there are js files with ts files
+ *- the exports file will not be generated and a conflict error will be displayed in the console.
+ *- Any other file that is not ts, tsx, js or jsx will be ignored.
+ *
+ * @example
+ * const generator = new ExportsGenerator('/directory', 'exports', 'index');
+ * generator.generate();
  */
+
 module.exports = class ExportsGenerator {
-  constructor(dirPath, outputDirName = 'exports', outputFileName = 'module.exports') {
+  /**
+   * Creates an instance of ExportsGenerator.
+   * @constructor
+   * @param {string} dirPath - The path of the directory to search for ES6 export default modules.
+   * @param {string} [outputDirName='exports'] - The name of the output directory where the index file will be generated.
+   * @param {string} [outputFileName='index'] - The name of the output file that will contain the export statements.
+   */
+  constructor(dirPath, outputDirName = 'exports', outputFileName = 'index') {
     this.PATH = path.join(process.cwd(), dirPath);
     this.outputDirName = outputDirName;
     this.outputFileName = outputFileName;
@@ -65,7 +126,7 @@ module.exports = class ExportsGenerator {
         }
 
         const defaultExportName = defaultExportMatch[2];
-        return `export { default as ${defaultExportName} } from './${basename}';`;
+        return `export { default as ${defaultExportName} } from '../${basename}';`;
       }
 
       return null;
@@ -84,8 +145,6 @@ module.exports = class ExportsGenerator {
     try {
       const files = fs.readdirSync(directoryPath);
       const exportStatements = [];
-
-      console.log(new RegExp(`^index\\.(js|jsx)$`));
 
       let currentJsFiles = files.filter(
         (file) =>
@@ -191,10 +250,6 @@ module.exports = class ExportsGenerator {
         }
         const indexFilePath = path.join(this.PATH, this.outputDirName, indexFileName);
         fs.writeFileSync(indexFilePath, exportStatements.join('\n'));
-        fs.writeFileSync(
-          path.join(this.PATH, 'package.json'),
-          `{"main": "${this.outputDirName}/${indexFileName}"}`
-        );
         console.log(
           `Index file '${indexFileName}' with exports generated successfully in the directory '${this.PATH}'.`
         );
