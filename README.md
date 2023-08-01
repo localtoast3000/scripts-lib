@@ -1,1 +1,1 @@
-<h1>Script Library for node.js</h1>
+<h1>Script Library for ts-node</h1>

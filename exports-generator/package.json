@@ -1,6 +1,6 @@
 {
   "name": "exports-generator",
-  "main": "_init_.js",
+  "main": "_init_.ts",
   "description": "Exports generator script for all ES6 export default modules located within a directory, output: ./exports/index.js",
   "version": "1.0.0",
   "author": {

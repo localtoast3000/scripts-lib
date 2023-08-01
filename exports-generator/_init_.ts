@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env ts-node
+const ExportsGenerator = require('./class');
 
 /**
  *- Init script for CLI commands.
@@ -8,7 +9,7 @@
  *- <-------------------------------------------------------------->
  *- eg:
  *- --"scripts": {
- *- ---- "exports-gen": "node scripts/exports-generator src/pages
+ *- ---- "exports-gen": "ts-node scripts/exports-generator src/pages
  *- --}
  *- Will generate exports file for all found export default modules at src/pages
  *- <-------------------------------------------------------------->
@@ -16,8 +17,6 @@
  *- ------- eg: src/pages src/lib
  *- to generate multiple exports files, run the command again to update export files
  */
-
-const ExportsGenerator = require('./class');
 
 const paths = process.argv.slice(2);
 
@@ -27,7 +26,7 @@ if (paths.length === 0) {
   process.exit(1);
 }
 
-function generateExportsForPath(path) {
+function generateExportsForPath(path: string) {
   const exportsGeneratorInstance = new ExportsGenerator(path);
   exportsGeneratorInstance.generate();
 }

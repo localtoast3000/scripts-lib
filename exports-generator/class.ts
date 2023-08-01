@@ -59,14 +59,20 @@ const fs = require('fs');
  */
 
 module.exports = class ExportsGenerator {
+  private PATH: string;
+  private outputDirName: string;
+  private outputFileName: string;
+  private jsFiles: string[];
+  private tsFiles: string[];
+
   /**
    * Creates an instance of ExportsGenerator.
    * @constructor
-   * @param {string} dirPath - The path of the directory to search for ES6 export default modules.
-   * @param {string} [outputDirName='exports'] - The name of the output directory where the index file will be generated.
-   * @param {string} [outputFileName='index'] - The name of the output file that will contain the export statements.
+   * @param dirPath - The path of the directory to search for ES6 export default modules.
+   * @param outputDirName - The name of the output directory where the index file will be generated.
+   * @param outputFileName - The name of the output file that will contain the export statements.
    */
-  constructor(dirPath, outputDirName = 'exports', outputFileName = 'index') {
+  constructor(dirPath: string, outputDirName = 'exports', outputFileName = 'index') {
     this.PATH = path.join(process.cwd(), dirPath);
     this.outputDirName = outputDirName;
     this.outputFileName = outputFileName;
@@ -74,19 +80,15 @@ module.exports = class ExportsGenerator {
     this.tsFiles = [];
   }
 
-  get path() {
+  public get path() {
     return this.PATH;
-  }
-
-  set path(dirPath) {
-    this.PATH = dirPath;
   }
 
   /**
    * Get the content of the directory.
-   * @returns {string[]} An array containing the names of files and directories in the directory.
+   * @returns An array containing the names of files and directories in the directory.
    */
-  get content() {
+  public get content() {
     try {
       const files = fs.readdirSync(this.PATH);
       return files;
@@ -96,12 +98,12 @@ module.exports = class ExportsGenerator {
     }
   }
 
-  addJsFiles(files) {
+  private addJsFiles(files: string) {
     for (let file of files) {
       this.jsFiles.push(file);
     }
   }
-  addTsFiles(files) {
+  private addTsFiles(files: string) {
     for (let file of files) {
       this.tsFiles.push(file);
     }
@@ -109,10 +111,10 @@ module.exports = class ExportsGenerator {
 
   /**
    * Generate an export statement for a given file path.
-   * @param {string} filePath - The absolute file path.
-   * @returns {?string} The export statement or null if no default export found.
+   * @param filePath - The absolute file path.
+   * @returns The export statement or null if no default export found.
    */
-  generateExportStatement(filePath) {
+  private generateExportStatement(filePath: string) {
     try {
       const data = fs.readFileSync(filePath, 'utf8');
       const defaultExportMatch = data.match(
@@ -138,27 +140,27 @@ module.exports = class ExportsGenerator {
 
   /**
    * Process the directory and its subdirectories to generate export statements for files with default exports.
-   * @param {string} directoryPath - The absolute path of the directory to process.
-   * @returns {string[]} An array of export statements.
+   * @param directoryPath - The absolute path of the directory to process.
+   * @returns An array of export statements.
    */
-  processDirectory(directoryPath) {
+  private processDirectory(directoryPath: string) {
     try {
       const files = fs.readdirSync(directoryPath);
       const exportStatements = [];
 
       let currentJsFiles = files.filter(
-        (file) =>
+        (file: string) =>
           /\.(js|jsx)$/.test(file) &&
           !new RegExp(`^${this.outputFileName}\\.(js|jsx)$`).test(file)
       );
 
       let currentTsFiles = files.filter(
-        (file) =>
+        (file: string) =>
           /\.(ts|tsx)$/.test(file) &&
           !new RegExp(`^${this.outputFileName}\\.(js|jsx)$`).test(file)
       );
 
-      const subdirectories = files.filter((file) => {
+      const subdirectories = files.filter((file: string) => {
         const filePath = path.join(directoryPath, file);
         const stats = fs.statSync(filePath);
         return stats.isDirectory();
@@ -186,22 +188,22 @@ module.exports = class ExportsGenerator {
           const files = fs.readdirSync(subdirectoryPath);
           currentJsFiles = [
             ...currentJsFiles,
-            ...files.filter((file) => /index\.(js|jsx)$/.test(file)),
+            ...files.filter((file: string) => /index\.(js|jsx)$/.test(file)),
           ];
           currentTsFiles = [
             ...currentTsFiles,
-            ...files.filter((file) => /index\.(ts|tsx)$/.test(file)),
+            ...files.filter((file: string) => /index\.(ts|tsx)$/.test(file)),
           ];
 
           let indexFileExt = '';
           const indexFileCount = files
-            .map((file) => {
+            .map((file: string) => {
               const splitFile = file.split('.');
               if (splitFile[0] === 'index' && splitFile[1]) indexFileExt = splitFile[1];
               return splitFile[0];
             })
             .flat()
-            .filter((name) => name === 'index').length;
+            .filter((name: string) => name === 'index').length;
 
           if (indexFileCount > 0 && indexFileCount < 2) {
             const exportStatement = this.generateExportStatement(
@@ -228,13 +230,13 @@ module.exports = class ExportsGenerator {
   /**
    * Generate the index file with export statements based on the default exports found in the directory.
    */
-  generate() {
+  public generate() {
     try {
       const exportStatements = this.processDirectory(this.PATH);
       const exportsDir = path.join(this.PATH, this.outputDirName);
 
       if (exportStatements.length > 0) {
-        let indexFileName = false;
+        let indexFileName: boolean | string = false;
         if (this.tsFiles.length > 0 && this.jsFiles.length === 0) {
           indexFileName = `${this.outputFileName}.ts`;
         } else if (this.jsFiles.length > 0 && this.tsFiles.length === 0) {
